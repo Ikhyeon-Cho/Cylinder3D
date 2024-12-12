@@ -301,7 +301,7 @@ class SemKITTI_sk_multiscan(data.Dataset):
             annotated_data = np.expand_dims(np.zeros_like(raw_data[:, 0], dtype=int), axis=1)
         else:
             annotated_data = np.fromfile(self.im_idx[index].replace('velodyne', 'labels')[:-3] + 'label',
-                                         dtype=np.int32).reshape((-1, 1))
+                                         dtype=int32).reshape((-1, 1))
             annotated_data = annotated_data & 0xFFFF  # delete high 16 digits binary
             # annotated_data = np.vectorize(self.learning_map.__getitem__)(annotated_data)
 
@@ -324,7 +324,7 @@ class SemKITTI_sk_multiscan(data.Dataset):
                     annotated_data2 = np.expand_dims(np.zeros_like(raw_data2[:, 0], dtype=int), axis=1)
                 else:
                     annotated_data2 = np.fromfile(newpath2.replace('velodyne', 'labels')[:-3] + 'label',
-                                                  dtype=np.int32).reshape((-1, 1))
+                                                  dtype=int32).reshape((-1, 1))
                     annotated_data2 = annotated_data2 & 0xFFFF  # delete high 16 digits binary
 
                 raw_data2 = self.fuse_multi_scan(raw_data2, pose0, pose)

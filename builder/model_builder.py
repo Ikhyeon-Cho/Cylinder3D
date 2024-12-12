@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # author: Xinge
-# @file: model_builder.py 
+# @file: model_builder.py
 
 from network.cylinder_spconv_3d import get_model_class
 from network.segmentator_3d_asymm_spconv import Asymm_3d_spconv
@@ -8,6 +8,7 @@ from network.cylinder_fea_generator import cylinder_fea
 
 
 def build(model_config):
+
     output_shape = model_config['output_shape']
     num_class = model_config['num_class']
     num_input_features = model_config['num_input_features']

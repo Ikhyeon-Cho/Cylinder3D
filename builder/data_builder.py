@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 # author: Xinge
-# @file: data_builder.py 
+# @file: data_builder.py
 
 import torch
 from dataloader.dataset_semantickitti import get_model_class, collate_fn_BEV
@@ -11,6 +11,7 @@ def build(dataset_config,
           train_dataloader_config,
           val_dataloader_config,
           grid_size=[480, 360, 32]):
+
     data_path = train_dataloader_config["data_path"]
     train_imageset = train_dataloader_config["imageset"]
     val_imageset = val_dataloader_config["imageset"]
@@ -21,15 +22,22 @@ def build(dataset_config,
 
     SemKITTI = get_pc_model_class(dataset_config['pc_dataset_type'])
 
-    nusc=None
+    nusc = None
     if "nusc" in dataset_config['pc_dataset_type']:
         from nuscenes import NuScenes
-        nusc = NuScenes(version='v1.0-trainval', dataroot=data_path, verbose=True)
+        nusc = NuScenes(version='v1.0-trainval',
+                        dataroot=data_path, verbose=True)
 
-    train_pt_dataset = SemKITTI(data_path, imageset=train_imageset,
-                                return_ref=train_ref, label_mapping=label_mapping, nusc=nusc)
-    val_pt_dataset = SemKITTI(data_path, imageset=val_imageset,
-                              return_ref=val_ref, label_mapping=label_mapping, nusc=nusc)
+    train_pt_dataset = SemKITTI(data_path,
+                                imageset=train_imageset,
+                                return_ref=train_ref,
+                                label_mapping=label_mapping,
+                                nusc=nusc)
+    val_pt_dataset = SemKITTI(data_path,
+                              imageset=val_imageset,
+                              return_ref=val_ref,
+                              label_mapping=label_mapping,
+                              nusc=nusc)
 
     train_dataset = get_model_class(dataset_config['dataset_type'])(
         train_pt_dataset,

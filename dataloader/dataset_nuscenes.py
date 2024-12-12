@@ -102,7 +102,7 @@ class cylinder_dataset_nuscenes(data.Dataset):
         intervals = crop_range / (cur_grid_size - 1)
 
         if (intervals == 0).any(): print("Zero interval!")
-        grid_ind = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(np.int)
+        grid_ind = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(int)
 
         voxel_position = np.zeros(self.grid_size, dtype=np.float32)
         dim_array = np.ones(len(self.grid_size) + 1, int)
@@ -153,7 +153,7 @@ def nb_process_label(processed_label, sorted_label_voxel_pair):
 
 def collate_fn_BEV(data):
     data2stack = np.stack([d[0] for d in data]).astype(np.float32)
-    label2stack = np.stack([d[1] for d in data]).astype(np.int)
+    label2stack = np.stack([d[1] for d in data]).astype(int)
     grid_ind_stack = [d[2] for d in data]
     point_label = [d[3] for d in data]
     xyz = [d[4] for d in data]

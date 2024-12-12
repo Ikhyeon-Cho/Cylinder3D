@@ -58,7 +58,8 @@ class voxel_dataset(data.Dataset):
             xyz, labels = data
         elif len(data) == 3:
             xyz, labels, sig = data
-            if len(sig.shape) == 2: sig = np.squeeze(sig)
+            if len(sig.shape) == 2:
+                sig = np.squeeze(sig)
         else:
             raise Exception('Return invalid data tuple')
 
@@ -91,33 +92,41 @@ class voxel_dataset(data.Dataset):
         cur_grid_size = self.grid_size
 
         intervals = crop_range / (cur_grid_size - 1)
-        if (intervals == 0).any(): print("Zero interval!")
+        if (intervals == 0).any():
+            print("Zero interval!")
 
-        grid_ind = (np.floor((np.clip(xyz, min_bound, max_bound) - min_bound) / intervals)).astype(np.int)
+        grid_ind = (np.floor(
+            (np.clip(xyz, min_bound, max_bound) - min_bound) / intervals)).astype(int)
 
         # process voxel position
         voxel_position = np.zeros(self.grid_size, dtype=np.float32)
         dim_array = np.ones(len(self.grid_size) + 1, int)
         dim_array[0] = -1
-        voxel_position = np.indices(self.grid_size) * intervals.reshape(dim_array) + min_bound.reshape(dim_array)
+        voxel_position = np.indices(
+            self.grid_size) * intervals.reshape(dim_array) + min_bound.reshape(dim_array)
 
         # process labels
-        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.ignore_label
+        processed_label = np.ones(
+            self.grid_size, dtype=np.uint8) * self.ignore_label
         label_voxel_pair = np.concatenate([grid_ind, labels], axis=1)
-        label_voxel_pair = label_voxel_pair[np.lexsort((grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
-        processed_label = nb_process_label(np.copy(processed_label), label_voxel_pair)
+        label_voxel_pair = label_voxel_pair[np.lexsort(
+            (grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
+        processed_label = nb_process_label(
+            np.copy(processed_label), label_voxel_pair)
 
         data_tuple = (voxel_position, processed_label)
 
         # center data on each voxel for PTnet
-        voxel_centers = (grid_ind.astype(np.float32) + 0.5) * intervals + min_bound
+        voxel_centers = (grid_ind.astype(np.float32) + 0.5) * \
+            intervals + min_bound
         return_xyz = xyz - voxel_centers
         return_xyz = np.concatenate((return_xyz, xyz), axis=1)
 
         if len(data) == 2:
             return_fea = return_xyz
         elif len(data) == 3:
-            return_fea = np.concatenate((return_xyz, sig[..., np.newaxis]), axis=1)
+            return_fea = np.concatenate(
+                (return_xyz, sig[..., np.newaxis]), axis=1)
 
         if self.return_test:
             data_tuple += (grid_ind, labels, return_fea, index)
@@ -147,6 +156,7 @@ class cylinder_dataset(data.Dataset):
                  scale_aug=False,
                  transform_aug=False, trans_std=[0.1, 0.1, 0.1],
                  min_rad=-np.pi / 4, max_rad=np.pi / 4):
+
         self.point_cloud_dataset = in_dataset
         self.grid_size = np.asarray(grid_size)
         self.rotate_aug = rotate_aug
@@ -194,7 +204,8 @@ class cylinder_dataset(data.Dataset):
             xyz, labels = data
         elif len(data) == 3:
             xyz, labels, sig = data
-            if len(sig.shape) == 2: sig = np.squeeze(sig)
+            if len(sig.shape) == 2:
+                sig = np.squeeze(sig)
         else:
             raise Exception('Return invalid data tuple')
 
@@ -222,13 +233,15 @@ class cylinder_dataset(data.Dataset):
 
         if self.transform:
             noise_translate = np.array([np.random.normal(0, self.trans_std[0], 1),
-                                        np.random.normal(0, self.trans_std[1], 1),
+                                        np.random.normal(
+                                            0, self.trans_std[1], 1),
                                         np.random.normal(0, self.trans_std[2], 1)]).T
 
             xyz[:, 0:3] += noise_translate
 
         xyz_pol = cart2polar(xyz)
 
+        # coordinate quantization: r, theta, z
         max_bound_r = np.percentile(xyz_pol[:, 0], 100, axis=0)
         min_bound_r = np.percentile(xyz_pol[:, 0], 0, axis=0)
         max_bound = np.max(xyz_pol[:, 1:], axis=0)
@@ -243,30 +256,38 @@ class cylinder_dataset(data.Dataset):
         cur_grid_size = self.grid_size
         intervals = crop_range / (cur_grid_size - 1)
 
-        if (intervals == 0).any(): print("Zero interval!")
-        grid_ind = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(np.int)
+        if (intervals == 0).any():
+            print("Zero interval!")
+        grid_ind = (np.floor(
+            (np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(int)
 
         voxel_position = np.zeros(self.grid_size, dtype=np.float32)
         dim_array = np.ones(len(self.grid_size) + 1, int)
         dim_array[0] = -1
-        voxel_position = np.indices(self.grid_size) * intervals.reshape(dim_array) + min_bound.reshape(dim_array)
+        voxel_position = np.indices(
+            self.grid_size) * intervals.reshape(dim_array) + min_bound.reshape(dim_array)
         voxel_position = polar2cat(voxel_position)
 
-        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.ignore_label
+        processed_label = np.ones(
+            self.grid_size, dtype=np.uint8) * self.ignore_label
         label_voxel_pair = np.concatenate([grid_ind, labels], axis=1)
-        label_voxel_pair = label_voxel_pair[np.lexsort((grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
-        processed_label = nb_process_label(np.copy(processed_label), label_voxel_pair)
+        label_voxel_pair = label_voxel_pair[np.lexsort(
+            (grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
+        processed_label = nb_process_label(
+            np.copy(processed_label), label_voxel_pair)
         data_tuple = (voxel_position, processed_label)
 
         # center data on each voxel for PTnet
-        voxel_centers = (grid_ind.astype(np.float32) + 0.5) * intervals + min_bound
+        voxel_centers = (grid_ind.astype(np.float32) + 0.5) * \
+            intervals + min_bound
         return_xyz = xyz_pol - voxel_centers
         return_xyz = np.concatenate((return_xyz, xyz_pol, xyz[:, :2]), axis=1)
 
         if len(data) == 2:
             return_fea = return_xyz
         elif len(data) == 3:
-            return_fea = np.concatenate((return_xyz, sig[..., np.newaxis]), axis=1)
+            return_fea = np.concatenate(
+                (return_xyz, sig[..., np.newaxis]), axis=1)
 
         if self.return_test:
             data_tuple += (grid_ind, labels, return_fea, index)
@@ -343,30 +364,38 @@ class polar_dataset(data.Dataset):
         cur_grid_size = self.grid_size
         intervals = crop_range / (cur_grid_size - 1)
 
-        if (intervals == 0).any(): print("Zero interval!")
-        grid_ind = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(np.int)
+        if (intervals == 0).any():
+            print("Zero interval!")
+        grid_ind = (np.floor(
+            (np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(int)
 
         voxel_position = np.zeros(self.grid_size, dtype=np.float32)
         dim_array = np.ones(len(self.grid_size) + 1, int)
         dim_array[0] = -1
-        voxel_position = np.indices(self.grid_size) * intervals.reshape(dim_array) + min_bound.reshape(dim_array)
+        voxel_position = np.indices(
+            self.grid_size) * intervals.reshape(dim_array) + min_bound.reshape(dim_array)
         voxel_position = polar2cat(voxel_position)
 
-        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.ignore_label
+        processed_label = np.ones(
+            self.grid_size, dtype=np.uint8) * self.ignore_label
         label_voxel_pair = np.concatenate([grid_ind, labels], axis=1)
-        label_voxel_pair = label_voxel_pair[np.lexsort((grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
-        processed_label = nb_process_label(np.copy(processed_label), label_voxel_pair)
+        label_voxel_pair = label_voxel_pair[np.lexsort(
+            (grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
+        processed_label = nb_process_label(
+            np.copy(processed_label), label_voxel_pair)
         data_tuple = (voxel_position, processed_label)
 
         # center data on each voxel for PTnet
-        voxel_centers = (grid_ind.astype(np.float32) + 0.5) * intervals + min_bound
+        voxel_centers = (grid_ind.astype(np.float32) + 0.5) * \
+            intervals + min_bound
         return_xyz = xyz_pol - voxel_centers
         return_xyz = np.concatenate((return_xyz, xyz_pol, xyz[:, :2]), axis=1)
 
         if len(data) == 2:
             return_fea = return_xyz
         elif len(data) == 3:
-            return_fea = np.concatenate((return_xyz, sig[..., np.newaxis]), axis=1)
+            return_fea = np.concatenate(
+                (return_xyz, sig[..., np.newaxis]), axis=1)
 
         if self.return_test:
             data_tuple += (grid_ind, labels, return_fea, index)
@@ -385,17 +414,19 @@ def nb_process_label(processed_label, sorted_label_voxel_pair):
     for i in range(1, sorted_label_voxel_pair.shape[0]):
         cur_ind = sorted_label_voxel_pair[i, :3]
         if not np.all(np.equal(cur_ind, cur_sear_ind)):
-            processed_label[cur_sear_ind[0], cur_sear_ind[1], cur_sear_ind[2]] = np.argmax(counter)
+            processed_label[cur_sear_ind[0], cur_sear_ind[1],
+                            cur_sear_ind[2]] = np.argmax(counter)
             counter = np.zeros((label_size,), dtype=np.uint16)
             cur_sear_ind = cur_ind
         counter[sorted_label_voxel_pair[i, 3]] += 1
-    processed_label[cur_sear_ind[0], cur_sear_ind[1], cur_sear_ind[2]] = np.argmax(counter)
+    processed_label[cur_sear_ind[0], cur_sear_ind[1],
+                    cur_sear_ind[2]] = np.argmax(counter)
     return processed_label
 
 
 def collate_fn_BEV(data):
     data2stack = np.stack([d[0] for d in data]).astype(np.float32)
-    label2stack = np.stack([d[1] for d in data]).astype(np.int)
+    label2stack = np.stack([d[1] for d in data]).astype(int)
     grid_ind_stack = [d[2] for d in data]
     point_label = [d[3] for d in data]
     xyz = [d[4] for d in data]
@@ -404,7 +435,7 @@ def collate_fn_BEV(data):
 
 def collate_fn_BEV_test(data):
     data2stack = np.stack([d[0] for d in data]).astype(np.float32)
-    label2stack = np.stack([d[1] for d in data]).astype(np.int)
+    label2stack = np.stack([d[1] for d in data]).astype(int)
     grid_ind_stack = [d[2] for d in data]
     point_label = [d[3] for d in data]
     xyz = [d[4] for d in data]
