@@ -1,0 +1,108 @@
+# Config format schema number
+format_version: 4
+
+###################
+## Model options
+model_params:
+  model_architecture: "cylinder_asym"
+
+  output_shape:
+    - 480
+    - 360
+    - 32
+
+  fea_dim: 9
+  out_fea_dim: 256
+  num_class: 20
+  num_input_features: 16
+  use_norm: True
+  init_size: 32
+
+
+###################
+## Dataset options
+dataset_params:
+  dataset_type: "CylindricalKITTIDataset"
+  pc_dataset_type: "SemKITTI_sk"
+  ignore_label: 0
+  return_test: False
+  fixed_volume_space: True
+  label_mapping: "./config/label_mapping/semantic-kitti.yaml"
+  max_volume_space:
+    - 50
+    - 3.1415926
+    - 2
+  min_volume_space:
+    - 0
+    - -3.1415926
+    - -4
+
+
+###################
+## Data_loader options
+train_data_loader:
+  data_path: "/data/semanticKITTI/dataset/"
+  imageset: "train"
+  return_ref: True
+  batch_size: 1
+  shuffle: True
+  num_workers: 4
+
+val_data_loader:
+  data_path: "/data/semanticKITTI/dataset/"
+  imageset: "valid"
+  return_ref: True
+  batch_size: 1
+  shuffle: False
+  num_workers: 4
+
+
+###################
+## Train params
+train_params:
+  model_load_path: "./model_load_dir/model_load.pt"
+  model_save_path: "./model_save_dir/model_save.pt"
+  checkpoint_every_n_steps: 4599
+  max_num_epochs: 40
+  eval_every_n_steps: 4599
+  learning_rate: 0.001
+
+DATASET:
+  type: "kitti"
+  root_dir: "/data/semanticKITTI/dataset/"
+  num_class: 20
+  voxel_dim: [480, 360, 32]
+
+MODEL:
+  point_feature_compression: 16
+
+TRAIN:
+  checkpoint_path: "./new_state_dict.pth"
+  batch_size: 4
+  num_workers: 4
+  shuffle: True
+  epochs: 80
+  learning_rate: 0.0001
+  summary_period: 10 # [batch]
+  checkpoint_period: 15 # [epoch]
+  validation_summary_period: 1 # [epoch]
+
+  # Optimizer
+  type: Adam # [Adam, SGD]
+  Adam_beta1: 0.9
+  Adam_beta2: 0.999
+  SGD_momentum: NA
+  SGD_weight_decay: NA
+  # Scheduler
+  scheduler: None # [None, constant, power_iteration]
+  scheduler_frequency: epoch
+  lr_power: 0.98
+  # model_load_path: "./configs/model_save_backup.pt"
+  
+LOSS:
+  loss_type: "cross_entropy"
+
+LOGGER:
+  log_dir: "./logs"
+  timezone: "Asia/Seoul"
+

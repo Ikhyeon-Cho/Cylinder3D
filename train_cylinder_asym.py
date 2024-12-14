@@ -18,6 +18,7 @@ from builder import data_builder, model_builder, loss_builder
 from config.config import load_config_data
 
 from utils.load_save_util import load_checkpoint
+from utils.train import machine, seed
 
 import warnings
 
@@ -25,6 +26,8 @@ warnings.filterwarnings("ignore")
 
 
 def main(args):
+
+    seed.seed_all(42)
     pytorch_device = torch.device('cuda:0')
 
     config_path = args.config_path
@@ -48,7 +51,8 @@ def main(args):
     model_load_path = train_hypers['model_load_path']
     model_save_path = train_hypers['model_save_path']
 
-    SemKITTI_label_name = get_SemKITTI_label_name(dataset_config["label_mapping"])
+    SemKITTI_label_name = get_SemKITTI_label_name(
+        dataset_config["label_mapping"])
     unique_label = np.asarray(sorted(list(SemKITTI_label_name.keys())))[1:] - 1
     unique_label_str = [SemKITTI_label_name[x] for x in unique_label + 1]
 
@@ -56,8 +60,11 @@ def main(args):
     if os.path.exists(model_load_path):
         my_model = load_checkpoint(model_load_path, my_model)
 
+    print(my_model)
+
     my_model.to(pytorch_device)
-    optimizer = optim.Adam(my_model.parameters(), lr=train_hypers["learning_rate"])
+    optimizer = optim.Adam(my_model.parameters(),
+                           lr=train_hypers["learning_rate"])
 
     loss_func, lovasz_softmax = loss_builder.build(wce=True, lovasz=True,
                                                    num_class=num_class, ignore_label=ignore_label)
@@ -79,7 +86,7 @@ def main(args):
         pbar = tqdm(total=len(train_dataset_loader))
         time.sleep(10)
         # lr_scheduler.step(epoch)
-        for i_iter, (_, train_vox_label, train_grid, _, train_pt_fea) in enumerate(train_dataset_loader):
+        for i_iter, (_, train_vox_label, train_grid, _, train_pt_fea) in enumerate(val_dataset_loader):
             if global_iter % check_iter == 0 and epoch >= 1:
                 my_model.eval()
                 hist_list = []
@@ -90,10 +97,13 @@ def main(args):
 
                         val_pt_fea_ten = [torch.from_numpy(i).type(torch.FloatTensor).to(pytorch_device) for i in
                                           val_pt_fea]
-                        val_grid_ten = [torch.from_numpy(i).to(pytorch_device) for i in val_grid]
-                        val_label_tensor = val_vox_label.type(torch.LongTensor).to(pytorch_device)
+                        val_grid_ten = [torch.from_numpy(i).to(
+                            pytorch_device) for i in val_grid]
+                        val_label_tensor = val_vox_label.type(
+                            torch.LongTensor).to(pytorch_device)
                         val_batch_size = val_vox_label.shape[0]
-                        predict_labels = my_model(val_pt_fea_ten, val_grid_ten, val_batch_size)
+                        predict_labels = my_model(
+                            val_pt_fea_ten, val_grid_ten, val_batch_size)
                         # aux_loss = loss_fun(aux_outputs, point_label_tensor)
                         loss = lovasz_softmax(torch.nn.functional.softmax(predict_labels).detach(), val_label_tensor,
                                               ignore=0) + loss_func(predict_labels.detach(), val_label_tensor)
@@ -101,9 +111,10 @@ def main(args):
                         predict_labels = predict_labels.cpu().detach().numpy()
                         for count, i_val_grid in enumerate(val_grid):
                             hist_list.append(fast_hist_crop(predict_labels[
-                                                                count, val_grid[count][:, 0], val_grid[count][:, 1],
-                                                                val_grid[count][:, 2]], val_pt_labs[count],
-                                                            unique_label))
+                                count, val_grid[count][:,
+                                                       0], val_grid[count][:, 1],
+                                val_grid[count][:, 2]], val_pt_labs[count],
+                                unique_label))
                         val_loss_list.append(loss.detach().cpu().numpy())
                 my_model.train()
                 iou = per_class_iu(sum(hist_list))
@@ -123,13 +134,17 @@ def main(args):
                 print('Current val loss is %.3f' %
                       (np.mean(val_loss_list)))
 
-            train_pt_fea_ten = [torch.from_numpy(i).type(torch.FloatTensor).to(pytorch_device) for i in train_pt_fea]
+            train_pt_fea_ten = [torch.from_numpy(i).type(
+                torch.FloatTensor).to(pytorch_device) for i in train_pt_fea]
             # train_grid_ten = [torch.from_numpy(i[:,:2]).to(pytorch_device) for i in train_grid]
-            train_vox_ten = [torch.from_numpy(i).to(pytorch_device) for i in train_grid]
-            point_label_tensor = train_vox_label.type(torch.LongTensor).to(pytorch_device)
+            train_vox_ten = [torch.from_numpy(i).to(
+                pytorch_device) for i in train_grid]
+            point_label_tensor = train_vox_label.type(
+                torch.LongTensor).to(pytorch_device)
             train_batch_size = train_vox_label.shape[0]
             # forward + backward + optimize
-            outputs = my_model(train_pt_fea_ten, train_vox_ten, train_batch_size)
+            outputs = my_model(
+                train_pt_fea_ten, train_vox_ten, train_batch_size)
             loss = lovasz_softmax(torch.nn.functional.softmax(outputs), point_label_tensor, ignore=0) + loss_func(
                 outputs, point_label_tensor)
             loss.backward()
@@ -138,7 +153,7 @@ def main(args):
 
             if global_iter % 1000 == 0:
                 if len(loss_list) > 0:
-                    print('epoch %d iter %5d, loss: %.3f\n' %
+                    print('epoch %d iter %5d, loss1: %.3f\n' %
                           (epoch, i_iter, np.mean(loss_list)))
                 else:
                     print('loss error')
@@ -148,7 +163,7 @@ def main(args):
             global_iter += 1
             if global_iter % check_iter == 0:
                 if len(loss_list) > 0:
-                    print('epoch %d iter %5d, loss: %.3f\n' %
+                    print('epoch %d iter %5d, loss2: %.3f\n' %
                           (epoch, i_iter, np.mean(loss_list)))
                 else:
                     print('loss error')
@@ -159,7 +174,8 @@ def main(args):
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-y', '--config_path', default='config/semantickitti.yaml')
+    parser.add_argument('-y', '--config_path',
+                        default='config/semantickitti.yaml')
     args = parser.parse_args()
 
     print(' '.join(sys.argv))
