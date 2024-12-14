@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 import numba as nb
 import multiprocessing
+import torch_scatter
 
 
 class cylinder_fea(nn.Module):
@@ -57,7 +58,8 @@ class cylinder_fea(nn.Module):
         # concate everything
         cat_pt_ind = []
         for i_batch in range(len(xy_ind)):
-            cat_pt_ind.append(F.pad(xy_ind[i_batch], (1, 0), 'constant', value=i_batch))
+            cat_pt_ind.append(
+                F.pad(xy_ind[i_batch], (1, 0), 'constant', value=i_batch))
 
         cat_pt_fea = torch.cat(pt_fea, dim=0)
         cat_pt_ind = torch.cat(cat_pt_ind, dim=0)
@@ -69,22 +71,14 @@ class cylinder_fea(nn.Module):
         cat_pt_ind = cat_pt_ind[shuffled_ind, :]
 
         # unique xy grid index
-        unq, unq_inv, unq_cnt = torch.unique(cat_pt_ind, return_inverse=True, return_counts=True, dim=0)
+        unq, unq_inv, unq_cnt = torch.unique(
+            cat_pt_ind, return_inverse=True, return_counts=True, dim=0)
         unq = unq.type(torch.int64)
 
         # process feature
         processed_cat_pt_fea = self.PPmodel(cat_pt_fea)
-        
-        # Replace torch_scatter.scatter_max with native PyTorch operations
-        pooled_data = torch.zeros((unq.shape[0], processed_cat_pt_fea.shape[1]), 
-                                 dtype=processed_cat_pt_fea.dtype,
-                                 device=processed_cat_pt_fea.device)
-        
-        # Perform max pooling manually
-        for i in range(unq.shape[0]):
-            mask = (unq_inv == i)
-            if mask.any():
-                pooled_data[i] = torch.max(processed_cat_pt_fea[mask], dim=0)[0]
+        pooled_data = torch_scatter.scatter_max(
+            processed_cat_pt_fea, unq_inv, dim=0)[0]
 
         if self.fea_compre:
             processed_pooled_data = self.fea_compression(pooled_data)

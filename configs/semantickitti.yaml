@@ -22,7 +22,7 @@ model_params:
 ###################
 ## Dataset options
 dataset_params:
-  dataset_type: "cylinder_dataset"
+  dataset_type: "CylindricalKITTIDataset"
   pc_dataset_type: "SemKITTI_sk"
   ignore_label: 0
   return_test: False
@@ -41,7 +41,7 @@ dataset_params:
 ###################
 ## Data_loader options
 train_data_loader:
-  data_path: "/data/semanticKITTI/dataset/sequences"
+  data_path: "/data/semanticKITTI/dataset/"
   imageset: "train"
   return_ref: True
   batch_size: 1
@@ -49,8 +49,8 @@ train_data_loader:
   num_workers: 4
 
 val_data_loader:
-  data_path: "/data/semanticKITTI/dataset/sequences"
-  imageset: "val"
+  data_path: "/data/semanticKITTI/dataset/"
+  imageset: "valid"
   return_ref: True
   batch_size: 1
   shuffle: False
@@ -60,9 +60,46 @@ val_data_loader:
 ###################
 ## Train params
 train_params:
-  model_load_path: "./configs/model_save_backup.pt"
+  model_load_path: "./model_load_dir/model_load.pt"
   model_save_path: "./model_save_dir/model_save.pt"
   checkpoint_every_n_steps: 4599
   max_num_epochs: 40
   eval_every_n_steps: 4599
   learning_rate: 0.001
+
+MODEL:
+  model_architecture: "cylinder_asym"
+  feature_compression: 16
+
+TRAIN:
+  batch_size: 4
+  num_workers: 4
+  shuffle: True
+  epochs: 80
+  learning_rate: 0.001
+  summary_period: 10 # [batch]
+  checkpoint_period: 15 # [epoch]
+  validation_summary_period: 1 # [epoch]
+
+  # Optimizer
+  type: Adam # [Adam, SGD]
+  Adam_beta1: 0.9
+  Adam_beta2: 0.999
+  SGD_momentum: NA
+  SGD_weight_decay: NA
+  # Scheduler
+  scheduler: None # [None, constant, power_iteration]
+  scheduler_frequency: epoch
+  lr_power: 0.98
+  model_load_path: "./configs/model_save_backup.pt"
+LOSS:
+  loss_type: "cross_entropy"
+
+LOGGER:
+  log_dir: "./logs"
+  timezone: "Asia/Seoul"
+
+DATASET:
+  type: "kitti"
+  root_dir: "/data/semanticKITTI/dataset/"
+  voxel_dim: [480, 360, 32]
